@@ -23,12 +23,32 @@
     align-items: center;
     font-size: 28px;
     font-weight: bold;
-    background-color: #8af88f;
+    background-color: #f7d704;
     border-radius: 10px;
 }
+
 .processing-container label:hover {
     cursor: pointer;
-    background-color: #8af88fCC;
+    background-color: #f7d704CC;
+}
+
+.processing-container .processing-btn-disabled {
+    
+    width: 80%;
+    height: 60px;
+    padding: 5px;
+    /* border: 1px solid red; */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 28px;
+    font-weight: bold;
+    background-color: #afafaf;
+    border-radius: 10px;
+}
+.processing-container .processing-btn-disabled:hover {
+    cursor: default;
+    background-color: #afafaf;
 }
 
 .loading-spinner {

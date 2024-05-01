@@ -13,7 +13,7 @@ const moment = require('moment');
 
 app.use(cors());
 
-const connectionString = "server=SM196640001\\SQLEXPRESS01;Database=DNHACompare;Trusted_Connection=Yes;Driver={ODBC Driver 17 for SQL Server}";
+const connectionString = "server=DESKTOP-UFM9VOR\\SQLEXPRESS;Database=DNHACompare;Trusted_Connection=Yes;Driver={ODBC Driver 17 for SQL Server}";
 // Create a connection variable at the module level
 let connection;
 
@@ -126,17 +126,14 @@ app.post('/processing', async (req, res) => {
                     
                     await new Promise((resolve, reject) => {
                         connection.query(`
-                            IF NOT EXISTS (SELECT 1 FROM SeatStoreFromJSON WHERE LotNO = ?)
-                            BEGIN
-                                INSERT INTO SeatStoreFromJSON (DateTime, LotNO, PartNO, SeatVal, MC_Name)
-                                VALUES (?, ?, ?, ?, ?);
-                                SELECT 'Insert completed' AS Message;
-                            END
-                            ELSE
-                            BEGIN
-                                SELECT 'Duplicate LotNO found, record not inserted' AS Message;
-                            END
-                        `, [lotNo, modifiedDateTime, lotNo, partNumber, seatVal, mcName], (err, results) => {
+                            MERGE INTO tb_SeatStore AS target
+                            USING (VALUES (?, ?, ?, ?, ?)) AS source (DateTime, LotNO, PartNO, SeatVal, MC_Name)
+                            ON (target.LotNO = source.LotNO)
+                            WHEN MATCHED THEN 
+                                UPDATE SET DateTime = source.DateTime, PartNO = source.PartNO, SeatVal = source.SeatVal, MC_Name = source.MC_Name
+                            WHEN NOT MATCHED THEN 
+                                INSERT (DateTime, LotNO, PartNO, SeatVal, MC_Name) VALUES (source.DateTime, source.LotNO, source.PartNO, source.SeatVal, source.MC_Name);
+                        `, [modifiedDateTime, lotNo, partNumber, seatVal, mcName], (err, results) => {
                             if (err) {
                                 console.log('Insert Seat Error: ', err);
                                 res.json({ status: 'not completed', message: err });
@@ -170,9 +167,9 @@ app.post('/processing', async (req, res) => {
                 // console.log(data);
                 await new Promise((resolve, reject) => {
                     connection.query(`
-                        IF NOT EXISTS (SELECT 1 FROM BodyStoreFromJSON WHERE LotNO = ?)
+                        IF NOT EXISTS (SELECT 1 FROM tb_BodyStore WHERE LotNO = ?)
                         BEGIN 
-                            INSERT INTO BodyStoreFromJSON (DateTime, LotNO, BodyLot)
+                            INSERT INTO tb_BodyStore (DateTime, LotNO, BodyLot)
                             VALUES (?, ?, ?);
                             SELECT 'Insert body completed' AS Message;
                         END
@@ -214,9 +211,9 @@ app.post('/processing', async (req, res) => {
                 // console.log(data);
                 await new Promise((resolve, reject) => {
                     connection.query(`
-                        IF NOT EXISTS (SELECT 1 FROM NeedleStoreFromJSON WHERE LotNO = ?)
+                        IF NOT EXISTS (SELECT 1 FROM tb_NeedleStore WHERE LotNO = ?)
                         BEGIN 
-                            INSERT INTO NeedleStoreFromJSON (DateTime, LotNO, NeedleLot)
+                            INSERT INTO tb_NeedleStore (DateTime, LotNO, NeedleLot)
                             VALUES (?, ?, ?);
                             SELECT 'Insert needle completed' AS Message;
                         END
@@ -342,24 +339,6 @@ app.post('/processing', async (req, res) => {
                 END
             FROM tb_CombineSeatBodyNeedle t;
             
-            INSERT INTO tb_DNHAResult (BodyLot, Body_MC, NeedleLot, Needle_MC, ProdQty, NGQty, NGPercent, Xbar)
-            SELECT subquery.BodyDate, subquery.BodyMC, subquery.NeedleDate, subquery.NeedleMC, subquery.ProdQty, subquery.NGQty, 
-                    (subquery.NGQty * 100.0) / subquery.ProdQty AS NGPercent, subquery.Xbar
-            
-            FROM (
-                SELECT BodyDate, BodyMC, NeedleDate, NeedleMC, COUNT(BodyDate) AS ProdQty, 
-                        SUM(CASE WHEN OK_NG = 'NG' THEN 1 ELSE 0 END) AS NGQty,
-                        AVG(SeatVal) AS Xbar
-                FROM tb_CombineSeatBodyNeedle
-                GROUP BY BodyDate, NeedleDate, BodyMC, NeedleMC
-            ) AS subquery
-            WHERE NOT EXISTS (
-                SELECT 1
-                FROM tb_DNHAResult
-                WHERE tb_DNHAResult.BodyLot = subquery.BodyDate
-                    AND tb_DNHAResult.Body_MC = subquery.BodyMC
-                    AND tb_DNHAResult.NeedleLot = subquery.NeedleDate
-                    AND tb_DNHAResult.Needle_MC = subquery.NeedleMC
             );
         `, (err, results) => {
             if (err) {

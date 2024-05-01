@@ -27,31 +27,42 @@ const Processing = () => {
             }
 
         } catch (error) {
+            setLoading(false);
             console.log('Error : ', error);
         }
     }
 
 
 
-  return (
-    <div>
-        <div className='processing-container'>
-            <button className='processing-btn' id='processing_btn' onClick={handleClick}>Processing</button>
-            <label htmlFor="processing_btn">
-                Processing
-                <ClipLoader
-                    color={'red'}
+    return (
+        <div>
+          <div className='processing-container'>
+            {!loading ? (
+                <>
+                <button className='processing-btn' id='processing_btn' onClick={handleClick}>
+                    Processing
+                </button>
+                <label htmlFor="processing_btn" className='processing-btn'>
+                    Processing
+                </label>
+              </>
+            ) : (
+            <>
+                <button className='processing-btn' id='processing_btn'></button>
+                <label htmlFor="processing_btn" className='processing-btn-disabled'>
+                    <ClipLoader
+                    color={'white'} 
                     loading={loading}
-                    // cssOverride={override}
                     size={20}
                     aria-label="Loading Spinner"
                     data-testid="loader"
-                />
-            </label>
-            
+                    />
+                </label>
+            </>
+            )}
+          </div>
         </div>
-    </div>
-  )
-}
+      )
+    }
 
 export default Processing

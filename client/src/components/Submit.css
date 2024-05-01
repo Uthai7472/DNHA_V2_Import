@@ -23,10 +23,10 @@
     align-items: center;
     font-size: 28px;
     font-weight: bold;
-    background-color: #FA6161;
+    background-color: #0dc200;
     border-radius: 10px;
 }
 .submit-container label:hover {
     cursor: pointer;
-    background-color: #FA6161CC;
+    background-color: #0ed800CC;
 }
